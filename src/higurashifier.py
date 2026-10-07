@@ -41,7 +41,7 @@ class BlurOpts:
 class ProcessOpts:
     aspect_mode: AspectMode = AspectMode.ASPECT_ORIGINAL
     max_height: Optional[int] = 1080  # for downscaling
-    white_level: Optional[float] = 85.0  # [0.0, 100.0]
+    white_level: Optional[float] = 85.0  # (50.0, 100.0]
     unsharpening: Optional[float] = 1.0  # [0.0, 3.0]
     posterize_levels: Optional[int] = 9  # quantization steps, [2, 20]
     blur: Optional[BlurOpts] = BlurOpts()
@@ -175,7 +175,7 @@ def process_array(pixels: np.ndarray, opts: ProcessOpts) -> np.ndarray:
     orig = pixels.astype(np.float64).copy()
     base = orig.copy()
     if opts.white_level:
-        base = apply_level_adjustment(base, clamp(opts.white_level, 0.0, 100.0))
+        base = apply_level_adjustment(base, clamp(opts.white_level, 50.1, 100.0))
     if opts.unsharpening:
         base = apply_unsharp(base, clamp(opts.unsharpening, 0.0, 3.0))
     if opts.blur:

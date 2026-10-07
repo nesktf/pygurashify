@@ -72,12 +72,12 @@ $$c' = clamp(255 \times (B \times (1-o) + B \times L \times o), 0, 255)$$
 
 ### Original image
 <p align="center">
-    <img width="248" height="540" src="mari_original.jpg"" alt="mari_original">
+    <img width="auto" height="540" src="img/mari_original.jpg"" alt="mari_original">
 </p>
 
 ### Result
 <p align="center">
-    <img width="auto" height="540" src="mari_higurashi.png"" alt="mari_higurashi">
+    <img width="auto" height="540" src="img/mari_higurashi.png"" alt="mari_higurashi">
 </p>
 
 Parameters:

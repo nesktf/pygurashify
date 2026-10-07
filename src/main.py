@@ -60,7 +60,7 @@ def main():
         help="Blur angle in degrees (default: -25.0)",
     )
     parser.add_argument(
-        "--blur-opacity", type=float, default=0.7, help="Blur opacity (default: 1.0)"
+        "--blur-opacity", type=float, default=0.7, help="Blur opacity (default: 0.7)"
     )
     parser.add_argument(
         "--blur-radius",

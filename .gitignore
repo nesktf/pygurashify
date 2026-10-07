@@ -3,3 +3,4 @@ src/__pycache__/*
 main.spec
 build/*
 dist/*
+.wine/

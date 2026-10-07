@@ -1,33 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+import sys
 from pathlib import Path
-from PySide6.QtCore import QLibraryInfo
 
-qt_plugins_dir = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
-extra_binaries = []
-extra_datas = []
 
-# Collect Qt plugins
-for sub in [
-    'platforms',
-    'xcbglintegrations',
-    'wayland-shell-integration',
-    'wayland-decoration-client',
-    'wayland-graphics-integration-client',
-    'platformthemes',
-    'styles',
-    'imageformats',
-]:
-    p_path = Path(qt_plugins_dir) / sub
-    if p_path.exists():
-        for pattern in ('*.so*', '*.dll'):
-            for f in p_path.glob(pattern):
-                extra_binaries.append((str(f), f'PySide6/plugins/{sub}'))
-                extra_binaries.append((str(f), f'plugins/{sub}'))
-
-qt_conf_path = Path("build/qt.conf")
-qt_conf_path.parent.mkdir(parents=True, exist_ok=True)
-qt_conf_path.write_text("[Paths]\nPrefix = .\nPlugins = PySide6/plugins\n")
-extra_datas.append((str(qt_conf_path), '.'))
 
 a_cli = Analysis(
     ['src/cli.py'],
@@ -65,12 +41,12 @@ exe_cli = EXE(
 a_gui = Analysis(
     ['src/gui.py'],
     pathex=['src'],
-    binaries=extra_binaries,
-    datas=extra_datas,
+    binaries=[],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['src/rthook_pyside6.py'],
     excludes=[],
     noarchive=False,
     optimize=0,
@@ -95,6 +71,9 @@ exe_gui = EXE(
     entitlements_file=None,
 )
 
+a_gui.binaries = [b for b in a_gui.binaries if not Path(b[0]).name.lower().startswith("icu")]
+a_cli.binaries = [b for b in a_cli.binaries if not Path(b[0]).name.lower().startswith("icu")]
+
 coll = COLLECT(
     exe_cli,
     a_cli.binaries,
@@ -107,3 +86,5 @@ coll = COLLECT(
     upx_exclude=[],
     name='pygurashify',
 )
+
+

@@ -257,20 +257,46 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("pygurashify - Higurashi Style Filter")
-        self.resize(1020, 820)
+        self.resize(1020, 800)
+        self.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid #555555;
+                border-radius: 2px;
+                margin-top: 10px;
+                padding-top: 12px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 8px;
+                padding: 0 4px;
+            }
+            QGroupBox:disabled, QGroupBox:unchecked {
+                border-color: #444444;
+                color: #555555;
+            }
+            QGroupBox::title:disabled, QGroupBox::title:unchecked {
+                color: #555555;
+            }
+            """)
 
         self.debounce_timer = QTimer(self)
         self.debounce_timer.setSingleShot(True)
         self.debounce_timer.setInterval(300)
         self.debounce_timer.timeout.connect(self._start_processing)
 
+        central_widget = QWidget()
+        central_layout = QVBoxLayout(central_widget)
+        central_layout.setContentsMargins(12, 12, 12, 12)
+        central_layout.setSpacing(8)
+
         main_splitter = QSplitter(Qt.Vertical)
-        self.setCentralWidget(main_splitter)
+        central_layout.addWidget(main_splitter, 1)
 
         # image view panel
         image_panel = QWidget()
         img_layout = QHBoxLayout(image_panel)
-        img_layout.setContentsMargins(12, 12, 12, 6)
+        img_layout.setContentsMargins(0, 0, 0, 0)
         img_layout.setSpacing(12)
 
         def select_input_image():
@@ -334,7 +360,7 @@ class MainWindow(QMainWindow):
         controls_container = QWidget()
         controls_grid = QGridLayout(controls_container)
         controls_grid.setContentsMargins(12, 8, 12, 8)
-        controls_grid.setSpacing(10)
+        controls_grid.setSpacing(6)
 
         # preprocessing
         group_prep = QGroupBox("Preprocessing")
@@ -344,7 +370,7 @@ class MainWindow(QMainWindow):
         self.combo_aspect = QComboBox()
         self.combo_aspect.addItems(["original", "4:3", "16:9", "1:1"])
         self.combo_aspect.currentIndexChanged.connect(self._on_param_changed)
-        prep_layout.addWidget(self.combo_aspect, 0, 1)
+        prep_layout.addWidget(self.combo_aspect, 0, 1, 1, 2)
 
         prep_layout.addWidget(QLabel("Max Height (0=off):"), 1, 0)
         self.spin_max_height = QSpinBox()
@@ -352,14 +378,12 @@ class MainWindow(QMainWindow):
         self.spin_max_height.setValue(1080)
         self.spin_max_height.setSingleStep(60)
         self.spin_max_height.valueChanged.connect(self._on_param_changed)
+        btn_reset_height = QPushButton("R")
+        btn_reset_height.setToolTip("Reset to default (1080)")
+        btn_reset_height.setFixedWidth(24)
+        btn_reset_height.clicked.connect(lambda: self.spin_max_height.setValue(1080))
         prep_layout.addWidget(self.spin_max_height, 1, 1)
-
-        # contrast
-        self.group_contrast = QGroupBox("Contrast")
-        self.group_contrast.setCheckable(True)
-        self.group_contrast.setChecked(True)
-        self.group_contrast.toggled.connect(self._on_param_changed)
-        contrast_layout = QGridLayout(self.group_contrast)
+        prep_layout.addWidget(btn_reset_height, 1, 2)
 
         def int_slider(min_val: int, max_val: int, default_val: int):
             slider = QSlider(Qt.Horizontal)
@@ -372,9 +396,14 @@ class MainWindow(QMainWindow):
 
             slider.valueChanged.connect(spin.setValue)
             spin.valueChanged.connect(slider.setValue)
-            slider.valueChanged.connect(self._on_param_changed)
+            spin.valueChanged.connect(self._on_param_changed)
 
-            return slider, spin
+            btn = QPushButton("R")
+            btn.setToolTip(f"Reset to default ({default_val})")
+            btn.setFixedWidth(24)
+            btn.clicked.connect(lambda: spin.setValue(default_val))
+
+            return slider, spin, btn
 
         def float_slider(
             min_val: float,
@@ -403,14 +432,27 @@ class MainWindow(QMainWindow):
             )
             spin.valueChanged.connect(self._on_param_changed)
 
-            return slider, spin
+            btn = QPushButton("R")
+            btn.setToolTip(f"Reset to default ({default_val})")
+            btn.setFixedWidth(24)
+            btn.clicked.connect(lambda: spin.setValue(default_val))
+
+            return slider, spin, btn
+
+        # contrast
+        self.group_contrast = QGroupBox("Contrast")
+        self.group_contrast.setCheckable(True)
+        self.group_contrast.setChecked(True)
+        self.group_contrast.toggled.connect(self._on_param_changed)
+        contrast_layout = QGridLayout(self.group_contrast)
 
         contrast_layout.addWidget(QLabel("White level (%):"), 0, 0)
-        slider_contrast, self.spin_contrast = float_slider(
+        slider_contrast, self.spin_contrast, btn_reset_contrast = float_slider(
             50.1, 100.0, 85.0, step=0.5, decimals=1, multiplier=10
         )
         contrast_layout.addWidget(slider_contrast, 0, 1)
         contrast_layout.addWidget(self.spin_contrast, 0, 2)
+        contrast_layout.addWidget(btn_reset_contrast, 0, 3)
 
         # blur
         self.group_blur = QGroupBox("Blur")
@@ -420,23 +462,28 @@ class MainWindow(QMainWindow):
         blur_layout = QGridLayout(self.group_blur)
 
         blur_layout.addWidget(QLabel("Radius (px):"), 0, 0)
-        slider_blur_radius, self.spin_blur_radius = int_slider(0, 30, 9)
+        slider_blur_radius, self.spin_blur_radius, btn_reset_blur_radius = int_slider(
+            0, 30, 9
+        )
         blur_layout.addWidget(slider_blur_radius, 0, 1)
         blur_layout.addWidget(self.spin_blur_radius, 0, 2)
+        blur_layout.addWidget(btn_reset_blur_radius, 0, 3)
 
         blur_layout.addWidget(QLabel("Angle (deg):"), 1, 0)
-        slider_blur_angle, self.spin_blur_angle = float_slider(
+        slider_blur_angle, self.spin_blur_angle, btn_reset_blur_angle = float_slider(
             -90.0, 90.0, -25.0, step=1.0, decimals=1, multiplier=10
         )
         blur_layout.addWidget(slider_blur_angle, 1, 1)
         blur_layout.addWidget(self.spin_blur_angle, 1, 2)
+        blur_layout.addWidget(btn_reset_blur_angle, 1, 3)
 
         blur_layout.addWidget(QLabel("Opacity:"), 2, 0)
-        slider_blur_opacity, self.spin_blur_opacity = float_slider(
-            0.0, 1.0, 0.7, step=0.05, decimals=2, multiplier=100
+        slider_blur_opacity, self.spin_blur_opacity, btn_reset_blur_opacity = (
+            float_slider(0.0, 1.0, 0.7, step=0.05, decimals=2, multiplier=100)
         )
         blur_layout.addWidget(slider_blur_opacity, 2, 1)
         blur_layout.addWidget(self.spin_blur_opacity, 2, 2)
+        blur_layout.addWidget(btn_reset_blur_opacity, 2, 3)
 
         # edge detection
         self.group_edge = QGroupBox("Edge Detection")
@@ -449,26 +496,28 @@ class MainWindow(QMainWindow):
         self.combo_edge_method = QComboBox()
         self.combo_edge_method.addItems(["sobel", "prewitt", "laplacian", "roberts"])
         self.combo_edge_method.currentIndexChanged.connect(self._on_param_changed)
-        edge_layout.addWidget(self.combo_edge_method, 0, 1, 1, 2)
+        edge_layout.addWidget(self.combo_edge_method, 0, 1, 1, 3)
 
         edge_layout.addWidget(QLabel("Threshold:"), 1, 0)
-        slider_edge_thresh, self.spin_edge_thresh = float_slider(
+        slider_edge_thresh, self.spin_edge_thresh, btn_reset_edge_thresh = float_slider(
             0.0, 255.0, 80.0, step=1.0, decimals=1, multiplier=10
         )
         edge_layout.addWidget(slider_edge_thresh, 1, 1)
         edge_layout.addWidget(self.spin_edge_thresh, 1, 2)
+        edge_layout.addWidget(btn_reset_edge_thresh, 1, 3)
 
         edge_layout.addWidget(QLabel("Opacity:"), 2, 0)
-        slider_edge_opacity, self.spin_edge_opacity = float_slider(
-            0.0, 1.0, 0.5, step=0.05, decimals=2, multiplier=100
+        slider_edge_opacity, self.spin_edge_opacity, btn_reset_edge_opacity = (
+            float_slider(0.0, 1.0, 0.5, step=0.05, decimals=2, multiplier=100)
         )
         edge_layout.addWidget(slider_edge_opacity, 2, 1)
         edge_layout.addWidget(self.spin_edge_opacity, 2, 2)
+        edge_layout.addWidget(btn_reset_edge_opacity, 2, 3)
 
         self.check_edge_invert = QCheckBox("Invert edge color (white on black)")
         self.check_edge_invert.setChecked(False)
         self.check_edge_invert.toggled.connect(self._on_param_changed)
-        edge_layout.addWidget(self.check_edge_invert, 3, 0, 1, 3)
+        edge_layout.addWidget(self.check_edge_invert, 3, 0, 1, 4)
 
         # unsharpening
         self.group_unsharp = QGroupBox("Unsharpening")
@@ -478,11 +527,12 @@ class MainWindow(QMainWindow):
         unsharp_layout = QGridLayout(self.group_unsharp)
 
         unsharp_layout.addWidget(QLabel("Amount:"), 0, 0)
-        self.slider_unsharp, self.spin_unsharp = float_slider(
+        self.slider_unsharp, self.spin_unsharp, btn_reset_unsharp = float_slider(
             0.0, 3.0, 1.0, step=0.1, decimals=2, multiplier=100
         )
         unsharp_layout.addWidget(self.slider_unsharp, 0, 1)
         unsharp_layout.addWidget(self.spin_unsharp, 0, 2)
+        unsharp_layout.addWidget(btn_reset_unsharp, 0, 3)
 
         # posterization
         self.group_posterize = QGroupBox("Posterization")
@@ -492,9 +542,12 @@ class MainWindow(QMainWindow):
         posterize_layout = QGridLayout(self.group_posterize)
 
         posterize_layout.addWidget(QLabel("Levels:"), 0, 0)
-        slider_posterize, self.spin_posterize = int_slider(2, 20, 9)
+        slider_posterize, self.spin_posterize, btn_reset_posterize = int_slider(
+            2, 20, 9
+        )
         posterize_layout.addWidget(slider_posterize, 0, 1)
         posterize_layout.addWidget(self.spin_posterize, 0, 2)
+        posterize_layout.addWidget(btn_reset_posterize, 0, 3)
 
         controls_grid.addWidget(group_prep, 0, 0)
         controls_grid.addWidget(self.group_contrast, 0, 1)
@@ -502,6 +555,11 @@ class MainWindow(QMainWindow):
         controls_grid.addWidget(self.group_edge, 1, 1)
         controls_grid.addWidget(self.group_unsharp, 2, 0)
         controls_grid.addWidget(self.group_posterize, 2, 1)
+
+        controls_scroll.setWidget(controls_container)
+        main_splitter.addWidget(controls_scroll)
+        main_splitter.setStretchFactor(0, 3)
+        main_splitter.setStretchFactor(1, 2)
 
         def save_processed_image():
             if self.processed_pil_image is None:
@@ -522,20 +580,18 @@ class MainWindow(QMainWindow):
             except Exception as err:
                 QMessageBox.critical(self, "Save Error", str(err))
 
-        # save button & status
-        action_layout = QHBoxLayout()
+        bottom_bar = QWidget()
+        bottom_layout = QHBoxLayout(bottom_bar)
+        bottom_layout.setContentsMargins(0, 2, 0, 0)
         self.status_label = QLabel("Click on the left image to open a file.")
         self.btn_save = QPushButton("Save Processed Image")
         self.btn_save.setEnabled(False)
         self.btn_save.clicked.connect(save_processed_image)
-        action_layout.addWidget(self.status_label, 1)
-        action_layout.addWidget(self.btn_save, 0)
-        controls_grid.addLayout(action_layout, 3, 0, 1, 2)
+        bottom_layout.addWidget(self.status_label, 1)
+        bottom_layout.addWidget(self.btn_save, 0)
+        central_layout.addWidget(bottom_bar, 0)
 
-        controls_scroll.setWidget(controls_container)
-        main_splitter.addWidget(controls_scroll)
-        main_splitter.setStretchFactor(0, 3)
-        main_splitter.setStretchFactor(1, 2)
+        self.setCentralWidget(central_widget)
 
 
 def main():

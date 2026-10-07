@@ -19,9 +19,10 @@ for sub in [
 ]:
     p_path = Path(qt_plugins_dir) / sub
     if p_path.exists():
-        for f in p_path.glob('*.so*'):
-            extra_binaries.append((str(f), f'PySide6/plugins/{sub}'))
-            extra_binaries.append((str(f), f'plugins/{sub}'))
+        for pattern in ('*.so*', '*.dll'):
+            for f in p_path.glob(pattern):
+                extra_binaries.append((str(f), f'PySide6/plugins/{sub}'))
+                extra_binaries.append((str(f), f'plugins/{sub}'))
 
 qt_conf_path = Path("build/qt.conf")
 qt_conf_path.parent.mkdir(parents=True, exist_ok=True)
